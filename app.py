@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_from_directory, redirect, url_for
+from flask import Flask, request, render_template, send_from_directory
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from werkzeug.utils import secure_filename
@@ -22,27 +22,27 @@ except Exception as e:
 db = client["image_app"]
 images_col = db["images"]
 
-# ✅ Route to homepage (index.html)
+# ✅ Homepage
 @app.route('/')
 def index():
     return render_template("index.html")
 
-# Route to serve uploaded image file
+# ✅ Serve uploaded image
 @app.route('/uploads/<filename>')
 def serve_uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
-# Upload form
+# ✅ Upload form
 @app.route('/upload.html', methods=["GET"])
 def show_upload():
     return render_template("upload.html")
 
-# Upload action
+# ✅ Upload image and stay on page with success message
 @app.route('/upload', methods=["POST"])
 def upload():
     file = request.files.get("image")
     if not file or file.filename == '':
-        return "❌ No file selected", 400
+        return render_template("upload.html", error="❌ No file selected.")
 
     filename = secure_filename(file.filename)
     file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
@@ -53,14 +53,14 @@ def upload():
         "uploaded_at": datetime.utcnow()
     })
 
-    return redirect(url_for("view_images"))
+    return render_template("upload.html", success="✅ Image uploaded successfully!")
 
-# View uploaded images
+# ✅ Gallery view
 @app.route('/images.html', methods=["GET"])
 def view_images():
     images = list(images_col.find().sort("uploaded_at", -1))
     return render_template("images.html", images=images)
 
 if __name__ == '__main__':
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Create folder if it doesn't exist
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # For local use
     app.run(debug=True)
